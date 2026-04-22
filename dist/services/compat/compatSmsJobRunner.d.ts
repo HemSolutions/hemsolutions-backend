@@ -14,4 +14,3 @@ type SmsLogEntry = {
 export declare function processCompatSmsSend(payload: SmsJobPayload): Promise<void>;
 export declare function readLatestSmsEntryForResponse(to: string, message: string): Promise<SmsLogEntry | null>;
 export {};
-//# sourceMappingURL=compatSmsJobRunner.d.ts.map

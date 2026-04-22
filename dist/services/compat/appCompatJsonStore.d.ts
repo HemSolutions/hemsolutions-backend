@@ -11,4 +11,3 @@ export declare const KEYS: {
 export declare function readJsonStore<T>(key: string): Promise<T | null>;
 export declare function writeJsonStore(key: string, value: object): Promise<void>;
 export declare function mutateJsonStore<T extends object>(key: string, defaultFactory: () => T, mutator: (current: T) => T): Promise<T>;
-//# sourceMappingURL=appCompatJsonStore.d.ts.map

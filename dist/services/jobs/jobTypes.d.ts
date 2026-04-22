@@ -48,4 +48,3 @@ export type QueuedJob = JobPayload & {
     attempts: number;
     id: string;
 };
-//# sourceMappingURL=jobTypes.d.ts.map

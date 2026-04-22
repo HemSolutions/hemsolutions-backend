@@ -11,4 +11,3 @@ export declare function invalidateCompatBookings(): Promise<void>;
 export declare function invalidateCompatInvoices(): Promise<void>;
 export declare function invalidateCompatDashboard(): Promise<void>;
 export declare function compatCacheKey(segment: string, query: Record<string, unknown>): string;
-//# sourceMappingURL=compatCache.d.ts.map

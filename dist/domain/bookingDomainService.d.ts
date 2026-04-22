@@ -52,4 +52,3 @@ export declare function adminUpdateWorker(id: string, body: Record<string, unkno
     totalJobs: number;
 }>;
 export declare function adminDeleteWorker(id: string): Promise<void>;
-//# sourceMappingURL=bookingDomainService.d.ts.map

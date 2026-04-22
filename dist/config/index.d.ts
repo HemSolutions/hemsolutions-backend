@@ -46,4 +46,3 @@ type ConfigValidationResult = {
 export declare function getConfigValidationResult(): ConfigValidationResult;
 export declare function validateConfig(): void;
 export {};
-//# sourceMappingURL=index.d.ts.map

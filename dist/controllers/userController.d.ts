@@ -9,4 +9,3 @@ export declare function getAddresses(req: Request, res: Response): Promise<void>
 export declare function createAddress(req: Request, res: Response): Promise<void>;
 export declare function updateAddress(req: Request, res: Response): Promise<void>;
 export declare function deleteAddress(req: Request, res: Response): Promise<void>;
-//# sourceMappingURL=userController.d.ts.map

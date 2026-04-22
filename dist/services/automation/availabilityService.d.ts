@@ -12,4 +12,3 @@ export declare function timeRangesOverlap(aStart: Date, aEnd: Date, bStart: Date
  */
 export declare function getConflictingBookings(workerId: string, start: Date, end: Date, excludeBookingId?: string): Promise<Booking[]>;
 export declare function isSlotFree(workerId: string, start: Date, end: Date, excludeBookingId?: string): Promise<boolean>;
-//# sourceMappingURL=availabilityService.d.ts.map

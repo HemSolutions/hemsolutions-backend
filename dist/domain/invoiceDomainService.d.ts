@@ -42,4 +42,3 @@ export declare function updateCompatInvoice(id: string, data: Record<string, unk
 export declare function deleteCompatInvoice(id: string): Promise<void>;
 export declare function createCompatReceiptFromInvoice(body: Record<string, unknown>): Promise<CompatReceiptRecord>;
 export {};
-//# sourceMappingURL=invoiceDomainService.d.ts.map

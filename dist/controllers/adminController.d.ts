@@ -7,4 +7,3 @@ export declare function getWorkers(req: Request, res: Response): Promise<void>;
 export declare function createWorker(req: Request, res: Response): Promise<void>;
 export declare function updateWorker(req: Request, res: Response): Promise<void>;
 export declare function deleteWorker(req: Request, res: Response): Promise<void>;
-//# sourceMappingURL=adminController.d.ts.map

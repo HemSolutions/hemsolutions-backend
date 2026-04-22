@@ -65,4 +65,3 @@ export type DomainEvent = {
 export type DomainEventHandler = (event: DomainEvent) => void | Promise<void>;
 export declare function subscribeDomainEvents(handler: DomainEventHandler): void;
 export declare function emitDomainEvent(event: DomainEvent): Promise<void>;
-//# sourceMappingURL=internalEvents.d.ts.map

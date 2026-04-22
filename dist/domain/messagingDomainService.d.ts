@@ -35,4 +35,3 @@ export declare function markMessagesReadForConversation(conversationId: string, 
 /** Unread count for app user: bookings they own or work on (matched worker email). */
 export declare function countUnreadMessagesForUser(userId: string): Promise<number>;
 export {};
-//# sourceMappingURL=messagingDomainService.d.ts.map

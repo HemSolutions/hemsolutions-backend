@@ -6,4 +6,3 @@ export declare function handleReceipts(req: Request, res: Response): Promise<voi
 export declare function handleSettings(req: Request, res: Response): Promise<void>;
 export declare function handleArticles(req: Request, res: Response): Promise<void>;
 export declare function handleAdminSegment(req: Request, res: Response): Promise<void>;
-//# sourceMappingURL=appCompatBridgeController.d.ts.map

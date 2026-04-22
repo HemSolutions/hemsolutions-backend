@@ -5,4 +5,3 @@
  * Compatible with POST /api/invoices/:id/pay (uses existing Invoice row).
  */
 export declare function onBookingCompleted(bookingId: string, userId: string): Promise<void>;
-//# sourceMappingURL=invoiceAutomationService.d.ts.map

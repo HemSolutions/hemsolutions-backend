@@ -88,4 +88,3 @@ export type CompatReceiptStoreRow = {
 };
 export declare function receiptCompatToPhp(r: CompatReceiptStoreRow, customerName: string): Record<string, unknown>;
 export {};
-//# sourceMappingURL=mappers.d.ts.map

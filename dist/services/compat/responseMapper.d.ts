@@ -9,4 +9,3 @@ export declare function serializeCompatValue(value: unknown): unknown;
  * Domain mappers are responsible for exact PHP field names; this layer handles serialization only.
  */
 export declare function sendCompatResponse(res: Response, body: unknown, status?: number): void;
-//# sourceMappingURL=responseMapper.d.ts.map

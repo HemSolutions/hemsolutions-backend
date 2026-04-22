@@ -4,4 +4,3 @@ import type { Request, Response } from 'express';
  * GET returns a raw array for ReklamationList.tsx.
  */
 export declare function handleReklamation(req: Request, res: Response): Promise<void>;
-//# sourceMappingURL=compatReklamationController.d.ts.map

@@ -1,1 +1,0 @@
-{"version":3,"file":"requestTimeout.d.ts","sourceRoot":"","sources":["../../src/middleware/requestTimeout.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,OAAO,EAAE,QAAQ,EAAE,YAAY,EAAE,MAAM,SAAS,CAAC;AAI/D;;GAEG;AACH,wBAAgB,wBAAwB,CAAC,SAAS,SAAa,IACrD,KAAK,OAAO,EAAE,KAAK,QAAQ,EAAE,MAAM,YAAY,KAAG,IAAI,CAU/D"}

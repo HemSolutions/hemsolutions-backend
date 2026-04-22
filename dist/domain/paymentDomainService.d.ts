@@ -12,4 +12,3 @@ export type CompatPaymentRecord = {
  * Ledger entry must always reference an invoice; invoice PAID + booking paymentStatus updated in the same DB transaction as the ledger append.
  */
 export declare function recordCompatPayment(body: Record<string, unknown>, idempotencyKey: string | undefined): Promise<CompatPaymentRecord>;
-//# sourceMappingURL=paymentDomainService.d.ts.map

@@ -7,4 +7,3 @@ export declare function cancelBooking(req: Request, res: Response): Promise<void
 export declare function assignWorker(req: Request, res: Response): Promise<void>;
 export declare function getAllBookings(req: Request, res: Response): Promise<void>;
 export declare function updateBookingStatus(req: Request, res: Response): Promise<void>;
-//# sourceMappingURL=bookingController.d.ts.map

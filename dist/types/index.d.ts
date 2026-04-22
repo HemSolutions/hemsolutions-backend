@@ -141,4 +141,3 @@ export interface AnalyticsData {
         bookings: number;
     }[];
 }
-//# sourceMappingURL=index.d.ts.map

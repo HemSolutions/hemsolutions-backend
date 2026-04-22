@@ -18,4 +18,3 @@ export declare function createReminderFromBody(body: Record<string, unknown>): P
  */
 export declare function transitionReminder(id: string, body: Record<string, unknown>): Promise<CompatReminderRecord>;
 export declare function deleteReminderRecord(id: string): Promise<void>;
-//# sourceMappingURL=reminderDomainService.d.ts.map

@@ -26,4 +26,3 @@ export declare function getReminderEmailTemplate(input: ReminderEmailTemplateInp
 export declare function getPasswordResetEmailTemplate(resetUrl: string, firstName: string): string;
 export declare function getBookingConfirmationEmailTemplate(firstName: string, serviceName: string, date: string, time: string): string;
 export {};
-//# sourceMappingURL=email.d.ts.map

@@ -7,4 +7,3 @@ import type { Application } from 'express';
  */
 export declare function processStripeWebhookEvent(event: Stripe.Event, app: Application): Promise<void>;
 export declare function logStripeWebhookError(err: unknown): void;
-//# sourceMappingURL=stripeWebhookService.d.ts.map

@@ -8,4 +8,3 @@ export interface CreateNotificationInput {
 }
 export declare function createNotification(input: CreateNotificationInput): Promise<void>;
 export declare function createBulkNotifications(userIds: string[], input: Omit<CreateNotificationInput, 'userId'>): Promise<void>;
-//# sourceMappingURL=notificationService.d.ts.map
