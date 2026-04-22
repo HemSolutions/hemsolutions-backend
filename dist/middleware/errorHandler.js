@@ -1,17 +1,27 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.errorHandler = errorHandler;
-const response_1 = require("../utils/response");
+const logger_1 = require("../utils/logger");
 function errorHandler(err, req, res, _next) {
-    console.error('Error:', err);
-    if (err.name === 'PrismaClientKnownRequestError') {
-        (0, response_1.errorResponse)(res, 'Database error', 500, 'An error occurred while accessing the database');
+    const requestId = req.id ?? 'unknown';
+    const message = process.env.NODE_ENV === 'production'
+        ? 'Internal Server Error'
+        : (err?.message || 'Internal Server Error');
+    logger_1.logger.error('Unhandled request error', {
+        requestId,
+        message: err?.message || 'Internal Server Error',
+        stack: process.env.NODE_ENV === 'production' ? undefined : err?.stack,
+        path: req.originalUrl,
+        method: req.method,
+    });
+    if (res.headersSent) {
         return;
     }
-    if (err.name === 'PrismaClientValidationError') {
-        (0, response_1.errorResponse)(res, 'Invalid data provided', 400, 'Validation failed for the provided data');
-        return;
-    }
-    (0, response_1.errorResponse)(res, 'Internal server error', 500, process.env.NODE_ENV === 'development' ? err.message : undefined);
+    res.status(500).json({
+        success: false,
+        error: message,
+        requestId,
+        timestamp: new Date().toISOString(),
+    });
 }
 //# sourceMappingURL=errorHandler.js.map

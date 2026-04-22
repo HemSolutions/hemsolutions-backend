@@ -1,15 +1,13 @@
 "use strict";
-// Test setup file
-/// <reference types="node" />
+/// <reference types="jest" />
 Object.defineProperty(exports, "__esModule", { value: true });
-// Global test setup
 beforeAll(() => {
     process.env.NODE_ENV = 'test';
     process.env.JWT_SECRET = 'test-secret-key';
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
 });
 afterAll(() => {
-    // Cleanup
+    // cleanup if needed
 });
 global.console = {
     ...console,

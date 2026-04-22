@@ -3,15 +3,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.prisma = void 0;
 exports.verifyDatabaseReadiness = verifyDatabaseReadiness;
 const client_1 = require("@prisma/client");
-const index_1 = require("../config/index");
+const config_1 = require("../config");
 const logger_1 = require("../utils/logger");
 const globalForPrisma = globalThis;
 exports.prisma = globalForPrisma.prisma ?? new client_1.PrismaClient({
-    log: index_1.config.server.isDevelopment
+    log: config_1.config.server.isDevelopment
         ? ['query', 'info', 'warn', 'error']
         : ['error'],
 });
-if (index_1.config.server.isDevelopment) {
+if (config_1.config.server.isDevelopment) {
     globalForPrisma.prisma = exports.prisma;
 }
 async function verifyDatabaseReadiness() {

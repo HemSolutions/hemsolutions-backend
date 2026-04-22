@@ -1,21 +1,33 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.logger = void 0;
-const config_1 = require("../config");
+function write(level, message, meta) {
+    const payload = {
+        level,
+        message,
+        timestamp: new Date().toISOString(),
+        meta: meta ?? null,
+    };
+    const line = JSON.stringify(payload);
+    if (level === 'error') {
+        console.error(line);
+        return;
+    }
+    if (level === 'warn') {
+        console.warn(line);
+        return;
+    }
+    console.log(line);
+}
 exports.logger = {
     info(message, meta) {
-        if (config_1.config.server.isProduction)
-            return;
-        if (meta)
-            console.log(message, meta);
-        else
-            console.log(message);
+        write('info', message, meta);
     },
     warn(message, meta) {
-        console.warn(message, meta ?? '');
+        write('warn', message, meta);
     },
-    error(message, err) {
-        console.error(message, err instanceof Error ? err.stack ?? err.message : err);
+    error(message, meta) {
+        write('error', message, meta);
     },
 };
 //# sourceMappingURL=logger.js.map
