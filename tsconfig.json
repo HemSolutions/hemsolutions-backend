@@ -17,6 +17,7 @@
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "types": ["node", "jest"],
     "paths": {
       "@utils/*": ["./src/utils/*"],
       "@config/*": ["./src/config/*"],
