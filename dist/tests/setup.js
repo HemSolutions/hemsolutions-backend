@@ -1,4 +1,5 @@
 "use strict";
+// Test setup file
 Object.defineProperty(exports, "__esModule", { value: true });
 // Global test setup
 beforeAll(() => {
