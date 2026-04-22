@@ -1,0 +1,1 @@
+{"version":3,"file":"responseMapper.d.ts","sourceRoot":"","sources":["../../../src/services/compat/responseMapper.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAExC;;;GAGG;AACH,wBAAgB,oBAAoB,CAAC,KAAK,EAAE,OAAO,GAAG,OAAO,CAgB5D;AAED;;;GAGG;AACH,wBAAgB,kBAAkB,CAAC,GAAG,EAAE,QAAQ,EAAE,IAAI,EAAE,OAAO,EAAE,MAAM,SAAM,GAAG,IAAI,CAEnF"}

@@ -1,0 +1,12 @@
+import { Request, Response } from 'express';
+export declare const updateProfileValidation: import("express-validator").ValidationChain[];
+export declare const changePasswordValidation: import("express-validator").ValidationChain[];
+export declare const createAddressValidation: import("express-validator").ValidationChain[];
+export declare function getProfile(req: Request, res: Response): Promise<void>;
+export declare function updateProfile(req: Request, res: Response): Promise<void>;
+export declare function changePassword(req: Request, res: Response): Promise<void>;
+export declare function getAddresses(req: Request, res: Response): Promise<void>;
+export declare function createAddress(req: Request, res: Response): Promise<void>;
+export declare function updateAddress(req: Request, res: Response): Promise<void>;
+export declare function deleteAddress(req: Request, res: Response): Promise<void>;
+//# sourceMappingURL=userController.d.ts.map

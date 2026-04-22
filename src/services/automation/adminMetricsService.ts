@@ -1,0 +1,115 @@
+import { prisma } from '../../prisma/client';
+import type { DashboardStats } from '../../types';
+
+/**
+ * Admin dashboard KPIs for GET /admin/dashboard (see adminController.getDashboardStats).
+ */
+export async function fetchDashboardStats(): Promise<DashboardStats> {
+  const now = new Date();
+  const startOfDay = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    0,
+    0,
+    0,
+    0
+  );
+  const endOfDay = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,
+    59,
+    59,
+    999
+  );
+
+  const [totalBookings, bookingsToday, paidRevenue, activeWorkers, pendingInvoices] =
+    await Promise.all([
+      prisma.booking.count(),
+      prisma.booking.count({
+        where: {
+          scheduledDate: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
+      }),
+      prisma.invoice.aggregate({
+        where: { status: 'PAID' },
+        _sum: { total: true },
+      }),
+      prisma.worker.count({ where: { isActive: true } }),
+      prisma.invoice.count({
+        where: {
+          status: { in: ['DRAFT', 'SENT', 'OVERDUE'] },
+        },
+      }),
+    ]);
+
+  const totalRevenue = paidRevenue._sum.total ?? 0;
+
+  return {
+    totalBookings,
+    bookingsToday,
+    totalRevenue,
+    activeWorkers,
+    pendingInvoices,
+  };
+}
+
+/** Shape expected by `hemsolutions/app` DashboardStats (snake_case, PHP compat). */
+export async function fetchDashboardStatsPhpCompat(): Promise<Record<string, number>> {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const startYear = new Date(Date.UTC(y, 0, 1));
+  const startMonth = new Date(Date.UTC(y, m, 1));
+  const nextMonth = new Date(Date.UTC(y, m + 1, 1));
+
+  const paidInRange = (from: Date, to: Date) => ({
+    status: 'PAID' as const,
+    OR: [
+      { paidAt: { gte: from, lt: to } },
+      { paidAt: null, updatedAt: { gte: from, lt: to } },
+    ],
+  });
+
+  const [
+    totalSalesYear,
+    totalSalesMonth,
+    outstanding,
+    overdue,
+    invoiceCount,
+    paidInvoiceCount,
+  ] = await Promise.all([
+    prisma.invoice.aggregate({
+      where: paidInRange(startYear, new Date(Date.UTC(y + 1, 0, 1))),
+      _sum: { total: true },
+    }),
+    prisma.invoice.aggregate({
+      where: paidInRange(startMonth, nextMonth),
+      _sum: { total: true },
+    }),
+    prisma.invoice.aggregate({
+      where: { status: { in: ['DRAFT', 'SENT'] } },
+      _sum: { total: true },
+    }),
+    prisma.invoice.aggregate({
+      where: { status: 'OVERDUE' },
+      _sum: { total: true },
+    }),
+    prisma.invoice.count(),
+    prisma.invoice.count({ where: { status: 'PAID' } }),
+  ]);
+
+  return {
+    total_sales_year: totalSalesYear._sum.total ?? 0,
+    total_sales_month: totalSalesMonth._sum.total ?? 0,
+    outstanding_amount: outstanding._sum.total ?? 0,
+    overdue_amount: overdue._sum.total ?? 0,
+    invoice_count: invoiceCount,
+    paid_invoice_count: paidInvoiceCount,
+  };
+}
