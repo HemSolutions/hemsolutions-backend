@@ -112,7 +112,7 @@ export async function changePassword(req: Request, res: Response): Promise<void>
     }
 
     // Verify current password
-    const { comparePassword } = await import('../utils/password');
+    const { comparePassword } = await import('../utils/password.js');
     const isValid = await comparePassword(currentPassword, user.password);
 
     if (!isValid) {

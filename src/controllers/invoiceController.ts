@@ -192,7 +192,7 @@ export async function downloadInvoicePDF(req: Request, res: Response): Promise<v
 
 export async function handleStripeWebhook(req: Request, res: Response): Promise<void> {
   try {
-    const { constructWebhookEvent } = await import('../utils/stripe');
+    const { constructWebhookEvent } = await import('../utils/stripe.js');
     const sig = req.headers['stripe-signature'] as string;
     const event = constructWebhookEvent(req.body, sig);
     await processStripeWebhookEvent(event, req.app);

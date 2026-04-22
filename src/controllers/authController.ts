@@ -190,7 +190,7 @@ export async function refresh(req: Request, res: Response): Promise<void> {
     }
 
     // Verify refresh token
-    const { verifyRefreshToken } = await import('../utils/jwt');
+    const { verifyRefreshToken } = await import('../utils/jwt.js');
     const payload = verifyRefreshToken(refreshToken);
 
     // Check if user still exists and is active
