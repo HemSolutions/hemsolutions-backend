@@ -16,8 +16,7 @@
     "declaration": true,
     "sourceMap": true,
 
-    "baseUrl": ".",
-    "types": ["node"]
+        "types": ["node"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist", "src/tests"]
