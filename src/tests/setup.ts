@@ -1,4 +1,10 @@
 // Test setup file
+/// <reference types="node" />
+
+declare global {
+  var beforeAll: any;
+  var afterAll: any;
+}
 
 // Global test setup
 beforeAll(() => {
