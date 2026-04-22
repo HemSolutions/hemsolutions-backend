@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "tsc && tsc-alias",
+    "build": "tsc",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
@@ -57,7 +57,7 @@
     "@jest/globals": "^30.3.0",
     "@types/jest": "^30.0.0",
     "@types/morgan": "^1.9.10",
-    "@types/node": "^25.6.0",
+    "@types/node": "^20.19.39",
     "@types/pdfkit": "^0.17.6",
     "@types/supertest": "^7.2.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
@@ -68,13 +68,12 @@
     "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
-    "tsc-alias": "^1.8.16",
     "typescript": "^5.3.3"
   },
   "prisma": {
     "schema": "prisma/schema.prisma"
   },
   "engines": {
-    "node": ">=18.x"
+    "node": "18.x"
   }
 }

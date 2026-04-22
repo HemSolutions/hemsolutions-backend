@@ -1,15 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyAccessToken, TokenPayload } from '@utils/jwt';
-import { errorResponse } from '@utils/response';
-import prisma from '@prisma/client';
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: TokenPayload;
-    }
-  }
-}
+import { verifyAccessToken, TokenPayload } from '../utils/jwt';
+import { errorResponse } from '../utils/response';
 
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
   try {

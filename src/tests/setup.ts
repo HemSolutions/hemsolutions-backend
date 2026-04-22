@@ -1,12 +1,7 @@
-// Test setup file
-/// <reference types="node" />
+/// <reference types="jest" />
 
-declare global {
-  var beforeAll: any;
-  var afterAll: any;
-}
+export {}; // makes this file a module (fixes global scope error)
 
-// Global test setup
 beforeAll(() => {
   process.env.NODE_ENV = 'test';
   process.env.JWT_SECRET = 'test-secret-key';
@@ -14,7 +9,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  // Cleanup
+  // cleanup if needed
 });
 
 global.console = {

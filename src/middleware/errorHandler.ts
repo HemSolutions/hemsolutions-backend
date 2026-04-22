@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { errorResponse } from '@utils/response';
+import { logger } from '../utils/logger';
 
 export function errorHandler(
   err: Error, 
@@ -7,17 +7,24 @@ export function errorHandler(
   res: Response, 
   _next: NextFunction
 ): void {
-  console.error('Error:', err);
-  
-  if (err.name === 'PrismaClientKnownRequestError') {
-    errorResponse(res, 'Database error', 500, 'An error occurred while accessing the database');
+  const requestId = req.id ?? 'unknown';
+  const message = process.env.NODE_ENV === 'production'
+    ? 'Internal Server Error'
+    : (err?.message || 'Internal Server Error');
+  logger.error('Unhandled request error', {
+    requestId,
+    message: err?.message || 'Internal Server Error',
+    stack: process.env.NODE_ENV === 'production' ? undefined : err?.stack,
+    path: req.originalUrl,
+    method: req.method,
+  });
+  if (res.headersSent) {
     return;
   }
-  
-  if (err.name === 'PrismaClientValidationError') {
-    errorResponse(res, 'Invalid data provided', 400, 'Validation failed for the provided data');
-    return;
-  }
-  
-  errorResponse(res, 'Internal server error', 500, process.env.NODE_ENV === 'development' ? err.message : undefined);
+  res.status(500).json({
+    success: false,
+    error: message,
+    requestId,
+    timestamp: new Date().toISOString(),
+  });
 }

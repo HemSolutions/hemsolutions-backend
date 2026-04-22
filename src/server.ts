@@ -7,6 +7,7 @@ import { createServer, Server } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 
 import { config, validateConfig } from './config';
+import { env } from './config/env';
 import { errorHandler } from './middleware/errorHandler';
 import { apiRateLimiter } from './middleware/rateLimit';
 import { requestTimeoutMiddleware } from './middleware/requestTimeout';
@@ -25,15 +26,33 @@ import webhookRoutes from './routes/webhooks';
 import compatRoutes from './routes/compat';
 import { installDomainEventHandlers } from './domain/domainEventBootstrap';
 import { registerAdminRefreshApp } from './services/automation/adminRefreshBridge';
-import { verifyDatabaseReadiness } from './prisma/client';
+import { prisma } from './prisma/client';
 import { logger } from './utils/logger';
+import { requestTracing } from './middleware/requestTracing';
+import { cacheStatus } from './services/cache';
 
 installDomainEventHandlers();
 
 // Initialize express app
 const app: Application = express();
 const httpServer: Server = createServer(app);
-let databaseStatus: 'connected' | 'disconnected' = 'disconnected';
+let dbStatus = false;
+const DB_RETRIES_MS = [1000, 2000, 5000];
+
+async function connectDB(): Promise<boolean> {
+  for (let i = 0; i < DB_RETRIES_MS.length; i += 1) {
+    try {
+      await prisma.$connect();
+      logger.info('Database connected', { attempt: i + 1 });
+      return true;
+    } catch (err) {
+      logger.warn('Database connection attempt failed', { attempt: i + 1, error: err });
+      await new Promise((resolve) => setTimeout(resolve, DB_RETRIES_MS[i]));
+    }
+  }
+  logger.error('Database unavailable after retries; running in degraded mode');
+  return false;
+}
 
 // Initialize Socket.IO
 const io = new SocketIOServer(httpServer, {
@@ -66,13 +85,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Rate limiting + request timeout (API only)
-app.use('/api/', requestTimeoutMiddleware(15_000));
-app.use('/api/', apiRateLimiter);
+app.use(requestTracing);
+app.use(requestTimeoutMiddleware(15_000));
+app.use(apiRateLimiter);
 
 // Body parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Compression
 app.use(compression());
@@ -88,7 +107,31 @@ if (config.server.isDevelopment) {
 app.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
-    database: databaseStatus,
+    uptime: process.uptime(),
+  });
+});
+
+app.get('/ready', (_req: Request, res: Response) => {
+  if (dbStatus) {
+    res.json({
+      status: 'ready',
+      database: 'connected',
+    });
+    return;
+  }
+
+  res.json({
+    status: 'degraded',
+    database: 'disconnected',
+  });
+});
+
+app.get('/metrics-lite', (_req: Request, res: Response) => {
+  res.json({
+    uptime: process.uptime(),
+    memoryUsage: process.memoryUsage(),
+    dbStatus: dbStatus ? 'connected' : 'disconnected',
+    cacheStatus,
   });
 });
 
@@ -144,19 +187,29 @@ io.on('connection', (socket) => {
 });
 
 // Start server
-const PORT = config.server.port;
+const PORT = env.PORT;
 
-async function bootstrap(): Promise<void> {
-  // Step 1: validate env
-  validateConfig();
-  // Step 2 + 3: DB connection + required objects verification
-  await verifyDatabaseReadiness();
-  databaseStatus = 'connected';
-  // Step 4: start server
+function bootstrap(): void {
+  if (!process.env.JWT_SECRET) {
+    logger.warn('Missing JWT_SECRET');
+  }
+
+  if (!process.env.NODE_ENV) {
+    process.env.NODE_ENV = 'production';
+  }
+
+  // Validate env but do not block startup in resilient mode.
+  try {
+    validateConfig();
+  } catch (err) {
+    logger.warn('Environment validation warning', { error: err });
+  }
+
   startBackgroundJobWorker();
-  httpServer.listen(PORT, () => {
-    logger.warn('✅ SERVER READY FOR PRODUCTION');
-    logger.warn(`Health endpoint: /health (port ${PORT})`);
+  httpServer.listen(Number(PORT), '0.0.0.0', async () => {
+    logger.info('Server started', { port: PORT, host: '0.0.0.0' });
+    logger.info('SERVER READY FOR PRODUCTION');
+    dbStatus = await connectDB();
     if (config.server.isDevelopment) {
       logger.info('Server started', {
         port: PORT,
@@ -168,31 +221,40 @@ async function bootstrap(): Promise<void> {
 }
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.warn('SIGTERM received. Shutting down gracefully...');
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received');
+  try {
+    await prisma.$disconnect();
+    logger.info('DB disconnected');
+  } catch (e) {
+    logger.warn('DB disconnect failed', { error: e });
+  }
   httpServer.close(() => {
-    logger.warn('Server closed');
+    logger.info('Server closed');
     process.exit(0);
   });
 });
 
-process.on('SIGINT', () => {
-  logger.warn('SIGINT received. Shutting down gracefully...');
+process.on('SIGINT', async () => {
+  logger.info('SIGINT received');
+  try {
+    await prisma.$disconnect();
+    logger.info('DB disconnected');
+  } catch (e) {
+    logger.warn('DB disconnect failed', { error: e });
+  }
   httpServer.close(() => {
-    logger.warn('Server closed');
+    logger.info('Server closed');
     process.exit(0);
   });
-});
-
-process.on('unhandledRejection', (reason) => {
-  logger.error('Unhandled promise rejection', reason);
 });
 
 process.on('uncaughtException', (err) => {
-  logger.error('Uncaught exception', err);
+  logger.error('[FATAL] Uncaught Exception', { error: err });
 });
 
-void bootstrap().catch((err) => {
-  logger.error('Server bootstrap failed. Exiting process.', err);
-  process.exit(1);
+process.on('unhandledRejection', (err) => {
+  logger.error('[FATAL] Unhandled Rejection', { error: err });
 });
+
+bootstrap();

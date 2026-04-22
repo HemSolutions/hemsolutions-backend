@@ -1,15 +1,32 @@
-import { config } from '../config';
+type LogLevel = 'info' | 'warn' | 'error';
+
+function write(level: LogLevel, message: string, meta?: unknown): void {
+  const payload = {
+    level,
+    message,
+    timestamp: new Date().toISOString(),
+    meta: meta ?? null,
+  };
+  const line = JSON.stringify(payload);
+  if (level === 'error') {
+    console.error(line);
+    return;
+  }
+  if (level === 'warn') {
+    console.warn(line);
+    return;
+  }
+  console.log(line);
+}
 
 export const logger = {
-  info(message: string, meta?: Record<string, unknown>): void {
-    if (config.server.isProduction) return;
-    if (meta) console.log(message, meta);
-    else console.log(message);
+  info(message: string, meta?: unknown): void {
+    write('info', message, meta);
   },
   warn(message: string, meta?: unknown): void {
-    console.warn(message, meta ?? '');
+    write('warn', message, meta);
   },
-  error(message: string, err?: unknown): void {
-    console.error(message, err instanceof Error ? err.stack ?? err.message : err);
+  error(message: string, meta?: unknown): void {
+    write('error', message, meta);
   },
 };
