@@ -129,6 +129,9 @@ export function bookingToPhp(b: BookingWithJoins): Record<string, unknown> {
     worker_name: workerName,
     worker_color: DEFAULT_WORKER_COLOR,
     service_name: b.service.name,
+    base_price: b.basePrice,
+    extras_price: b.extrasPrice,
+    total_price: b.totalPrice,
   };
 }
 

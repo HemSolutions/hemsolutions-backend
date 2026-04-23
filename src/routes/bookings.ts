@@ -5,6 +5,9 @@ import { validateRequest } from '../middleware/validation';
 
 const router = Router();
 
+// Public booking endpoint for website form
+router.post('/public', bookingController.createPublicBooking);
+
 // All routes require authentication
 router.use(authenticate);
 
@@ -37,6 +40,12 @@ router.put(
   '/:id/status',
   requireRole('ADMIN', 'SUPER_ADMIN', 'WORKER'),
   bookingController.updateBookingStatus
+);
+
+router.put(
+  '/:id/reschedule',
+  requireRole('ADMIN', 'SUPER_ADMIN', 'WORKER'),
+  bookingController.rescheduleBooking
 );
 
 export default router;

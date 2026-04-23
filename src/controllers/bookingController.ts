@@ -11,6 +11,8 @@ import * as invoiceAutomationService from '../services/automation/invoiceAutomat
 import * as notificationOrchestrator from '../services/automation/notificationOrchestrator';
 import * as adminSocketService from '../services/automation/adminSocketService';
 import { CreateBookingInput, BookingResponse } from '../types';
+import { hashPassword } from '../utils/password';
+import crypto from 'crypto';
 
 export const createBookingValidation = [
   body('serviceId').isUUID().withMessage('Valid service ID is required'),
@@ -112,6 +114,10 @@ export async function createBooking(req: Request, res: Response): Promise<void> 
           ]
         }
       }
+    });
+    await prisma.invoice.updateMany({
+      where: { bookingId: booking.id },
+      data: { pdfUrl: `/api/compat/pdf/invoice?id=${booking.id}` },
     });
 
     await bookingAutomationService.ensureInitialMessageThread(booking.id, userId);
@@ -392,9 +398,9 @@ export async function getAllBookings(req: Request, res: Response): Promise<void>
       prisma.booking.findMany({
         where,
         include: {
-          user: { select: { firstName: true, lastName: true, email: true } },
-          service: { select: { name: true } },
-          worker: { select: { firstName: true, lastName: true } },
+          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+          service: { select: { id: true, name: true } },
+          worker: { select: { id: true, firstName: true, lastName: true } },
           address: true
         },
         orderBy: { scheduledDate: 'asc' },
@@ -486,5 +492,169 @@ export async function updateBookingStatus(req: Request, res: Response): Promise<
   } catch (error) {
     console.error('Update booking status error:', error);
     errorResponse(res, 'Failed to update status', 500);
+  }
+}
+
+export async function createPublicBooking(req: Request, res: Response): Promise<void> {
+  try {
+    const {
+      serviceSlug,
+      postcode,
+      address,
+      scheduledDate,
+      scheduledTime,
+      firstName,
+      lastName,
+      email,
+      phone,
+      notes,
+    } = req.body as Record<string, string>;
+
+    if (!serviceSlug || !address || !scheduledDate || !scheduledTime || !firstName || !lastName || !email) {
+      errorResponse(res, 'Missing required booking fields', 400);
+      return;
+    }
+
+    const service =
+      (await prisma.service.findFirst({ where: { slug: serviceSlug, isActive: true } })) ||
+      (await prisma.service.findFirst({ where: { isActive: true, name: { contains: serviceSlug, mode: 'insensitive' } } }));
+
+    if (!service) {
+      errorResponse(res, 'Service not found', 404);
+      return;
+    }
+
+    let user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      const generatedPassword = crypto.randomBytes(12).toString('hex');
+      const hashedPassword = await hashPassword(generatedPassword);
+      user = await prisma.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          firstName,
+          lastName,
+          phone,
+        },
+      });
+    }
+
+    const bookingAddress = await prisma.address.create({
+      data: {
+        userId: user.id,
+        label: 'Bokningsadress',
+        street: address,
+        city: 'Stockholm',
+        zipCode: postcode || '00000',
+        isDefault: false,
+      },
+    });
+
+    const basePrice = service.price;
+    const totalPrice = basePrice;
+    const booking = await prisma.booking.create({
+      data: {
+        userId: user.id,
+        serviceId: service.id,
+        addressId: bookingAddress.id,
+        scheduledDate: new Date(scheduledDate),
+        scheduledTime,
+        duration: service.duration,
+        basePrice,
+        extrasPrice: 0,
+        totalPrice,
+        notes: notes || 'Created from website public form',
+        status: 'PENDING',
+        paymentStatus: 'PENDING',
+      },
+    });
+
+    const invoiceNumber = `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const taxRate = 0.25;
+    const subtotal = totalPrice / (1 + taxRate);
+    const taxAmount = totalPrice - subtotal;
+
+    await prisma.invoice.create({
+      data: {
+        bookingId: booking.id,
+        userId: user.id,
+        invoiceNumber,
+        subtotal,
+        taxRate,
+        taxAmount,
+        total: totalPrice,
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        items: {
+          create: [{ description: service.name, quantity: 1, unitPrice: basePrice, total: basePrice }],
+        },
+      },
+    });
+    await prisma.invoice.updateMany({
+      where: { bookingId: booking.id },
+      data: { pdfUrl: `/api/compat/pdf/invoice?id=${booking.id}` },
+    });
+
+    enqueueJob({
+      type: 'SEND_EMAIL',
+      payload: {
+        to: 'info@hemsolutions.se',
+        subject: `Ny bokning: ${service.name}`,
+        html: `
+          <h2>Ny bokning inkom</h2>
+          <p><strong>Namn:</strong> ${firstName} ${lastName}</p>
+          <p><strong>E-post:</strong> ${email}</p>
+          <p><strong>Telefon:</strong> ${phone || '-'}</p>
+          <p><strong>Adress:</strong> ${address}, ${postcode || '-'}</p>
+          <p><strong>Tjänst:</strong> ${service.name}</p>
+          <p><strong>Datum/Tid:</strong> ${scheduledDate} ${scheduledTime}</p>
+        `,
+      },
+    });
+
+    successResponse(res, { bookingId: booking.id }, 'Booking submitted successfully', 201);
+  } catch (error) {
+    console.error('Create public booking error:', error);
+    errorResponse(res, 'Failed to create public booking', 500);
+  }
+}
+
+export async function rescheduleBooking(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const { scheduledDate, scheduledTime, duration } = req.body as {
+      scheduledDate?: string;
+      scheduledTime?: string;
+      duration?: number;
+    };
+
+    if (!scheduledDate || !scheduledTime) {
+      errorResponse(res, 'scheduledDate and scheduledTime are required', 400);
+      return;
+    }
+
+    const booking = await prisma.booking.findUnique({ where: { id } });
+    if (!booking) {
+      errorResponse(res, 'Booking not found', 404);
+      return;
+    }
+
+    const updated = await prisma.booking.update({
+      where: { id },
+      data: {
+        scheduledDate: new Date(scheduledDate),
+        scheduledTime,
+        duration: typeof duration === 'number' && duration > 0 ? duration : booking.duration,
+      },
+      include: {
+        service: { select: { name: true } },
+        worker: { select: { firstName: true, lastName: true } },
+        user: { select: { firstName: true, lastName: true } },
+      },
+    });
+
+    successResponse(res, updated, 'Booking rescheduled successfully');
+  } catch (error) {
+    console.error('Reschedule booking error:', error);
+    errorResponse(res, 'Failed to reschedule booking', 500);
   }
 }

@@ -10,6 +10,7 @@ export const KEYS = {
   reklamation: 'compat_reklamation_v1',
   customerPrices: 'compat_customer_prices_v1',
   smsLog: 'compat_sms_log_v1',
+  customerProfiles: 'compat_customer_profiles_v1',
 } as const;
 
 export async function readJsonStore<T>(key: string): Promise<T | null> {

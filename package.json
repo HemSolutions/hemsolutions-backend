@@ -47,6 +47,7 @@
     "nodemailer": "^8.0.5",
     "pdfkit": "^0.18.0",
     "prisma": "^5.7.0",
+    "qrcode": "^1.5.4",
     "socket.io": "^4.7.2",
     "stripe": "^14.10.0",
     "uuid": "^9.0.1",
@@ -59,6 +60,7 @@
     "@types/morgan": "^1.9.10",
     "@types/node": "^20.19.39",
     "@types/pdfkit": "^0.17.6",
+    "@types/qrcode": "^1.5.6",
     "@types/supertest": "^7.2.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
@@ -74,6 +76,6 @@
     "schema": "prisma/schema.prisma"
   },
   "engines": {
-  "node": "20.x"
-}
+    "node": "20.x"
+  }
 }

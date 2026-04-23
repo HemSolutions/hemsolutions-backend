@@ -33,6 +33,15 @@ import { cacheStatus } from './services/cache';
 
 installDomainEventHandlers();
 
+const allowedOrigins = (
+  process.env.FRONTEND_URLS ||
+  process.env.FRONTEND_URL ||
+  'https://www.hemsolutions.se,http://localhost:5173'
+)
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 // Initialize express app
 const app: Application = express();
 const httpServer: Server = createServer(app);
@@ -57,7 +66,7 @@ async function connectDB(): Promise<boolean> {
 // Initialize Socket.IO
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: config.frontend.url,
+    origin: allowedOrigins,
     credentials: true
   }
 });
@@ -79,7 +88,7 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: config.frontend.url,
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

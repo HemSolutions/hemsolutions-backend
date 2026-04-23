@@ -38,7 +38,7 @@ export const config = {
   },
   
   frontend: {
-    url: process.env.FRONTEND_URL || 'http://localhost:5173'
+    url: process.env.FRONTEND_URL || 'https://www.hemsolutions.se'
   },
   
   upload: {

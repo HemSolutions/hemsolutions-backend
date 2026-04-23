@@ -4,12 +4,60 @@ import { prisma } from '../../prisma/client';
 import { hashPassword } from '../../utils/password';
 import { compatJson } from './compatHttp';
 import { userToPhpCustomer } from './mappers';
+import { KEYS, mutateJsonStore, readJsonStore } from '../../services/compat/appCompatJsonStore';
 import {
   compatCacheKey,
   compatGetJson,
   compatSetJson,
   invalidateCompatCustomers,
 } from '../../services/cache/compatCache';
+
+type CustomerExtras = {
+  customer_type?: string;
+  tax_reduction_type?: string;
+  organization_number?: string;
+  person_number?: string;
+  invoice_address_1?: string;
+  invoice_address_2?: string;
+  invoice_postcode?: string;
+  invoice_city?: string;
+  invoice_reference?: string;
+  notes?: string;
+};
+
+type CustomerProfilesStore = Record<string, CustomerExtras>;
+
+function pickCustomerExtras(data: Record<string, unknown>): CustomerExtras {
+  return {
+    customer_type: data.customer_type != null ? String(data.customer_type) : undefined,
+    tax_reduction_type: data.tax_reduction_type != null ? String(data.tax_reduction_type) : undefined,
+    organization_number: data.organization_number != null ? String(data.organization_number) : undefined,
+    person_number: data.person_number != null ? String(data.person_number) : undefined,
+    invoice_address_1: data.invoice_address_1 != null ? String(data.invoice_address_1) : undefined,
+    invoice_address_2: data.invoice_address_2 != null ? String(data.invoice_address_2) : undefined,
+    invoice_postcode: data.invoice_postcode != null ? String(data.invoice_postcode) : undefined,
+    invoice_city: data.invoice_city != null ? String(data.invoice_city) : undefined,
+    invoice_reference: data.invoice_reference != null ? String(data.invoice_reference) : undefined,
+    notes: data.notes != null ? String(data.notes) : undefined,
+  };
+}
+
+function mergeCustomerRow(base: Record<string, unknown>, extra: CustomerExtras | undefined): Record<string, unknown> {
+  if (!extra) return base;
+  return {
+    ...base,
+    org_number: extra.organization_number ?? base.org_number ?? '',
+    person_number: extra.person_number ?? base.person_number ?? '',
+    invoice_address_line1: extra.invoice_address_1 ?? base.invoice_address_line1 ?? '',
+    invoice_address_line2: extra.invoice_address_2 ?? base.invoice_address_line2 ?? '',
+    invoice_postal_code: extra.invoice_postcode ?? base.invoice_postal_code ?? '',
+    invoice_city: extra.invoice_city ?? base.invoice_city ?? '',
+    reference: extra.invoice_reference ?? base.reference ?? '',
+    notes: extra.notes ?? base.notes ?? '',
+    customer_type: extra.customer_type ?? 'private',
+    tax_reduction_type: extra.tax_reduction_type ?? 'none',
+  };
+}
 
 function customerNumberForUser(id: string): string {
   return `K-${id.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
@@ -23,6 +71,7 @@ export async function handleCustomers(req: Request, res: Response): Promise<void
     const method = req.method;
 
     if (method === 'GET') {
+      const profiles = (await readJsonStore<CustomerProfilesStore>(KEYS.customerProfiles)) ?? {};
       const id = req.query.id as string | undefined;
       if (id) {
         const u = await prisma.user.findFirst({
@@ -34,7 +83,7 @@ export async function handleCustomers(req: Request, res: Response): Promise<void
           return;
         }
         const addr = u.addresses[0] ?? null;
-        compatJson(res, userToPhpCustomer(u, addr, customerNumberForUser(u.id)));
+        compatJson(res, mergeCustomerRow(userToPhpCustomer(u, addr, customerNumberForUser(u.id)), profiles[u.id]));
         return;
       }
 
@@ -98,7 +147,7 @@ export async function handleCustomers(req: Request, res: Response): Promise<void
         ]);
 
         const customers = users.map((u) =>
-          userToPhpCustomer(u, u.addresses[0] ?? null, customerNumberForUser(u.id))
+          mergeCustomerRow(userToPhpCustomer(u, u.addresses[0] ?? null, customerNumberForUser(u.id)), profiles[u.id])
         );
 
         const payload = {
@@ -129,7 +178,7 @@ export async function handleCustomers(req: Request, res: Response): Promise<void
         take: 5000,
       });
       const allRows = users.map((u) =>
-        userToPhpCustomer(u, u.addresses[0] ?? null, customerNumberForUser(u.id))
+        mergeCustomerRow(userToPhpCustomer(u, u.addresses[0] ?? null, customerNumberForUser(u.id)), profiles[u.id])
       );
       await compatSetJson(allKey, allRows, 'long');
       compatJson(res, allRows);
@@ -169,6 +218,27 @@ export async function handleCustomers(req: Request, res: Response): Promise<void
           role: UserRole.CUSTOMER,
         },
       });
+      const addressLine = String(data.address ?? data.invoice_address_1 ?? '').trim();
+      const city = String(data.city ?? data.invoice_city ?? '').trim();
+      const postalCode = String(data.postcode ?? data.postal_code ?? data.invoice_postcode ?? '').trim();
+      if (addressLine && city && postalCode) {
+        await prisma.address.create({
+          data: {
+            userId: u.id,
+            label: 'Home',
+            street: addressLine,
+            city,
+            zipCode: postalCode,
+            country: 'Sweden',
+            isDefault: true,
+          },
+        });
+      }
+      const extras = pickCustomerExtras(data);
+      await mutateJsonStore<CustomerProfilesStore>(KEYS.customerProfiles, () => ({}), (cur) => ({
+        ...cur,
+        [u.id]: extras,
+      }));
 
       const customerNumber =
         String(data.customer_number ?? '').trim() || customerNumberForUser(u.id);
@@ -183,7 +253,7 @@ export async function handleCustomers(req: Request, res: Response): Promise<void
       }
       compatJson(
         res,
-        userToPhpCustomer(created, created.addresses[0] ?? null, customerNumber),
+        mergeCustomerRow(userToPhpCustomer(created, created.addresses[0] ?? null, customerNumber), extras),
         201
       );
       void invalidateCompatCustomers();
@@ -223,6 +293,47 @@ export async function handleCustomers(req: Request, res: Response): Promise<void
             : {}),
         },
       });
+      const addressLine = data.address != null ? String(data.address).trim() : null;
+      const city = data.city != null ? String(data.city).trim() : null;
+      const postalCode = data.postcode != null || data.postal_code != null
+        ? String(data.postcode ?? data.postal_code ?? '').trim()
+        : null;
+      if (addressLine || city || postalCode) {
+        const existingAddress = await prisma.address.findFirst({
+          where: { userId: id },
+          orderBy: { isDefault: 'desc' },
+        });
+        if (existingAddress) {
+          await prisma.address.update({
+            where: { id: existingAddress.id },
+            data: {
+              ...(addressLine != null ? { street: addressLine } : {}),
+              ...(city != null ? { city } : {}),
+              ...(postalCode != null ? { zipCode: postalCode } : {}),
+            },
+          });
+        } else if (addressLine && city && postalCode) {
+          await prisma.address.create({
+            data: {
+              userId: id,
+              label: 'Home',
+              street: addressLine,
+              city,
+              zipCode: postalCode,
+              country: 'Sweden',
+              isDefault: true,
+            },
+          });
+        }
+      }
+      const extras = pickCustomerExtras(data);
+      await mutateJsonStore<CustomerProfilesStore>(KEYS.customerProfiles, () => ({}), (cur) => ({
+        ...cur,
+        [id]: {
+          ...(cur[id] ?? {}),
+          ...Object.fromEntries(Object.entries(extras).filter(([, v]) => v !== undefined)),
+        },
+      }));
 
       const refreshed = await prisma.user.findFirst({
         where: { id, role: UserRole.CUSTOMER },
@@ -232,7 +343,14 @@ export async function handleCustomers(req: Request, res: Response): Promise<void
         compatJson(res, { error: 'Kund hittades inte' }, 404);
         return;
       }
-      compatJson(res, userToPhpCustomer(refreshed, refreshed.addresses[0] ?? null, customerNumberForUser(refreshed.id)));
+      const profiles = (await readJsonStore<CustomerProfilesStore>(KEYS.customerProfiles)) ?? {};
+      compatJson(
+        res,
+        mergeCustomerRow(
+          userToPhpCustomer(refreshed, refreshed.addresses[0] ?? null, customerNumberForUser(refreshed.id)),
+          profiles[refreshed.id]
+        )
+      );
       void invalidateCompatCustomers();
       return;
     }
@@ -254,6 +372,11 @@ export async function handleCustomers(req: Request, res: Response): Promise<void
         return;
       }
       await prisma.user.delete({ where: { id } });
+      await mutateJsonStore<CustomerProfilesStore>(KEYS.customerProfiles, () => ({}), (cur) => {
+        const next = { ...cur };
+        delete next[id];
+        return next;
+      });
       compatJson(res, { id, deleted: 1 });
       void invalidateCompatCustomers();
       return;
